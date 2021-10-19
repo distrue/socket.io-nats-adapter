@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "rootDir": "./lib",
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "typeRoots": ["./types"]
+  }
+}
