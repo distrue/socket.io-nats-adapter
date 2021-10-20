@@ -2,21 +2,26 @@
   "name": "socket.io-nats-adapter",
   "version": "0.1.0",
   "description": "Pub/Sub adapter for socket.io using nats.io as pub/sub message queue",
-  "main": "lib/index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "mkdir -p dist && tsc -p tsconfig.build.json",
+    "test": "mkdir -p junit && NODE_ENV=test jest --runInBand --detectOpenHandles",
+    "test:ci": "mkdir -p junit && NODE_ENV=ci jest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "messagepack": "^1.1.12",
     "nats": "^2.2.0",
-    "notepack.io": "^2.3.0",
     "socket.io-adapter": "^2.3.2"
   },
   "devDependencies": {
-    "@types/node": "^16.10.3",
-    "tsc": "^2.0.3",
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.11.1",
+    "jest": "^27.3.1",
+    "jest-junit": "^13.0.0",
+    "ts-jest": "^27.0.7",
     "typescript": "^4.4.3"
   }
 }

@@ -4,17 +4,21 @@ import {
   Msg,
   NatsConnection,
   NatsError,
-  ServerInfo,
-  Stats,
-  Subscription
+  Subscription,
 } from 'nats'
+
+type SubHandler = (err: NatsError | null, msg: Msg) => void
+
+export interface SubscribeBinder {
+  subscribe: (topic: string, opt: {callback: SubHandler}) => void
+}
 
 export default class NatsIoClient {
   servers: string[]
   conn?: NatsConnection
 
-  constructor() {
-    this.servers = ['localhost:4200', 'localhost:4201']
+  constructor(servers: string[]) {
+    this.servers = servers
   }
 
   public async initialize() {
@@ -48,7 +52,7 @@ export default class NatsIoClient {
     // 보내는 값은 validation을 위한 것
     // 현재 상태는 min(받은 "valid" response 갯수, 현재 설정 값(=prev) )
     // 다음 상태는 받은 "전체" response 갯수 (=prev 처리)
-    return new Promise((resolve) => resolve(3)); // return client count
+    return new Promise((resolve) => resolve(2)); // return client count
   }
 
 
@@ -66,12 +70,22 @@ export default class NatsIoClient {
     this.conn.publish(topic, payload)
   }
 
-  public async subscribe(
-    topic: string,
-    callback?: (err: NatsError|null, msg: Msg) => void
-  ): Promise<Subscription> {
+  public async publishRaw(topic: string, data: Uint8Array) {
     if (!this.conn) {
-      return new Promise(() => null)
+      return
+    }
+
+    this.conn.publish(topic, data)
+  }
+
+  // 외부에서 this binding된 handler를 등록해주기 위해 SubscribeBinder로 method를 막아 반환
+  public subBind(): SubscribeBinder | undefined {
+    return this.conn
+  }
+
+  public subscribe(topic: string, callback?: SubHandler): Subscription | null {
+    if (!this.conn) {
+      return null
     }
 
     if (callback) {
@@ -81,7 +95,7 @@ export default class NatsIoClient {
   }
 
   public unsubscribe(topic: string) {
-    this.conn?.subscribe
+    this.conn?.subscribe(topic)
   }
 
   ///

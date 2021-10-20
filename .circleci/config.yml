@@ -1,0 +1,30 @@
+version: 2.1
+executors:
+  test_executor:
+    docker:
+      - image: cimg/node:16.8.0
+      - image: nats:2.6.2-alpine
+    resource_class: medium
+    working_directory: ~/socket.io-nats
+    environment:
+      NODE_ENV: ci
+
+jobs:
+  test:
+    executor: test_executor
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: npm install
+      - run:
+          name: Test splitting & run!
+          command: npm run test:ci
+      - store_test_results:
+          path: ~/socket.io-nats/junit
+
+workflows:
+  version: 2
+  build_n_test:
+    jobs:
+      - test
