@@ -35,26 +35,14 @@ export default class NatsIoClient {
     // eventListener closes automatically
   }
 
-  // 의도적 시작 -> https://docs.nats.io/developing-with-nats/events/events#listen-for-new-servers
-  // 의도적 삭제 -> LDM (Lame Duck Mode)
-  // 비의도적 삭제 -> ping-pong 이후 없으면 list에서 삭제
+  // intentional-create -> https://docs.nats.io/developing-with-nats/events/events#listen-for-new-servers
+  // intentional-delete -> LDM (Lame Duck Mode)
+  // unintentional-delete -> ping-pong 이후 없으면 list에서 삭제
 
   public nodes(): Promise<number> {
-    // TODO: getNode 할 수 있도록 local에 connection 갯수와 conn subscribe
-    // interval 마다 서로 client 갯수를 negotiate
-    // response에 내가 원하는 값이 그대로 오는지 확인
-    // ex | 6으로 보냈는데, 6이 6-1개 오면 정상
-    // ex | 6으로 보냈는데, 6이 5개보다 적게 오면 받은 valid한 response 갯수로 세기 (ex | 5개..)
-    // 나머지 하나가 booting 중이거나, 하나가 lost 되었을 수 있음
-    // ex | 6으로 보냈는데, 6이 5개보다 많이 오면 (새 connection이 기존 값을 copy한 경우)
-    // 현재의 상태는 6으로, 다음 시도부터는 (받은갯수)+1 로 던지기
-    
-    // 보내는 값은 validation을 위한 것
-    // 현재 상태는 min(받은 "valid" response 갯수, 현재 설정 값(=prev) )
-    // 다음 상태는 받은 "전체" response 갯수 (=prev 처리)
+    // TODO: consider live nodes checkout logic
     return new Promise((resolve) => resolve(2)); // return client count
   }
-
 
   ///
 
@@ -100,7 +88,7 @@ export default class NatsIoClient {
 
   ///
 
-  // TODO: connection의 잦은 종료 시의 memory leak이 우려됨, nats에서 AsyncIterable 방식만을 제공하고 있어 이후 수정
+  // TODO: AsyncIterable client may occur memory leak on frequent close
   // https://github.com/nodejs/node/issues/30298
   private async eventListener(conn: NatsConnection) {
     if (!conn) {
