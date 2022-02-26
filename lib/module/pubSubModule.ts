@@ -25,23 +25,12 @@ export default class PubSubModule {
     await this.natsIoClient.close()
   }
 
-  public async nodes() {
-    return await this.natsIoClient.nodes()
-  }
-
-  public async isAlone() {
-    const ans = await this.natsIoClient.nodes() <= 1
-    return ans
-  }
-
   public async publishRaw(room: string, payload: Uint8Array) {
-    debug("Publish to nats.io")
-    await this.natsIoClient.publishRaw(room, payload)
+    this.natsIoClient.publishRaw(room, payload)
   }
 
   public async publish(room: string, payload: string) {
-    debug("Publish to nats.io")
-    await this.natsIoClient.publish(room, payload)
+    this.natsIoClient.publish(room, payload)
   }
 
   public getBinder(room: string, channel: string): SubscribeBinder | undefined {

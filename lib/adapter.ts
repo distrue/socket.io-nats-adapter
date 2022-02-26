@@ -48,7 +48,7 @@ export default class NatsIoAdapter extends Adapter {
   constructor(nsp: any, natsIoClient?: NatsIoClient) {
     super(nsp)
 
-    this.requestsTimeout = 5000
+    this.requestsTimeout = 500
     this.uid = new UniqueId().toString()
 
     const prefix = 'socket.io'
@@ -57,7 +57,7 @@ export default class NatsIoAdapter extends Adapter {
     this.requestChannel = `${prefix}-reqeust${nsp.name}`
     this.responseChannel = `${prefix}-response${nsp.name}`
     
-    this.RequestStoreModule = new RequestStoreModule(5000)
+    this.RequestStoreModule = new RequestStoreModule(this.requestsTimeout)
     this.pubsub = new PubSubModule(natsIoClient)
     this.init()
   }
@@ -68,9 +68,6 @@ export default class NatsIoAdapter extends Adapter {
   public async allRooms() {
     debug('AllRooms method')
     const localRooms = new Set(this.rooms.keys())
-    if (await this.pubsub.isAlone()) {
-      return Promise.resolve(localRooms)
-    }
 
     return this.sendRequestWithPromise<'ALL_ROOMS'>(
       { type: 'ALL_ROOMS', requestId: new UniqueId().toString() },
@@ -123,17 +120,17 @@ export default class NatsIoAdapter extends Adapter {
   // Override methods to implement adapter
 
   public async init() {
-    debug('[checked] init')
+    debug('init')
     await this.pubsub.init(this.requestChannel, this.onrequest)
   }
 
   public async close() {
-    debug('[checked] close')
+    debug('close')
     await this.pubsub.close()
   }
 
   public async addAll(id: SocketId, rooms: Set<Room>) {
-    debug('[checked] Internal addAll')
+    debug('Internal addAll')
     super.addAll(id, rooms)
     for (const room of this.rooms.keys()) {
       const sub = this.pubsub.getBinder(room, this.channel)?.subscribe(
@@ -153,7 +150,7 @@ export default class NatsIoAdapter extends Adapter {
   }
 
   public async delAll(id: SocketId) {
-    debug('[checked] Internal delAll')
+    debug('Internal delAll')
     if (!this.sids.has(id)) {
       return
     }
@@ -162,7 +159,7 @@ export default class NatsIoAdapter extends Adapter {
   }
 
   private async unsub(id: SocketId, room: Room) {
-    debug('[checked] Internal unsub')
+    debug('Internal unsub')
     const _room = this.rooms.get(room)
     if (_room != null && _room.size === 1 && _room.has(id)) {
       await this.pubsub.unsubscribe(this.channel + room)
@@ -170,7 +167,7 @@ export default class NatsIoAdapter extends Adapter {
   }
 
   public async broadcast(packet: any, opts: BroadcastOptions) {
-    debug('[checked] Broadcast')
+    debug('Broadcast')
     packet.nsp = this.nsp.name
     super.broadcast(packet, opts)
     if (opts.flags?.local) {
@@ -184,22 +181,16 @@ export default class NatsIoAdapter extends Adapter {
   public async sockets(rooms: Set<Room>) {
     debug('Internal sockets')
     const localSockets: Set<string> = await super.sockets(rooms)
-    if (await this.pubsub.isAlone()) {
-      return Promise.resolve(localSockets)
-    }
     return this.sendRequestWithPromise<'SOCKETS'>(
       {type: 'SOCKETS', requestId: new UniqueId().toString(), rooms: [...rooms],},
       { sockets: localSockets },
     )
   }
 
-  // TODO(v0.2): Override socketRooms method
-  // public socketRooms(id: SocketId) {}
-
   public async fetchSockets(opts: BroadcastOptions) {
     debug('FetchSocket')
     const sockets = await super.fetchSockets(opts)
-    if (opts.flags?.local || await this.pubsub.isAlone()) {
+    if (opts.flags?.local) {
       return sockets
     }
     return await this.sendRequestWithPromise<'REMOTE_FETCH'>(
@@ -235,15 +226,15 @@ export default class NatsIoAdapter extends Adapter {
     return await this.sendRequest(RequestBuilder.disconnSockets(opts, close))
   }
 
-  // TODO(v0.2): implement Server Side Emit
-  public serverSideEmit(packet: any[]): void {}
-  public serverSideEmitWithAck(packet: any[]): void {}
+  public serverSideEmit(packet: any[]): void {
+    this.sendRequest(RequestBuilder.serverSideEmit(this.uid, packet))
+  }
 
   //-----------------------------------------------
   // Message logic
 
   private onmessage(room: string, err: NatsError | null, msg: Msg) {
-    debug('[checked] onmessage on %s', room)
+    debug('onmessage on %s', room)
     if (err) {
       this.emit('error', err)
       return
@@ -263,10 +254,7 @@ export default class NatsIoAdapter extends Adapter {
   }
 
   private async sendMessage(packet: any, room: Room, opts: any) {
-    if (await this.pubsub.isAlone()) {
-      return
-    }
-    await this.pubsub.publishRaw(
+    this.pubsub.publishRaw(
       this.channel + room,
       MsgPackModule.encodeMessage(this.uid, room, packet, opts)
     )
@@ -341,17 +329,14 @@ export default class NatsIoAdapter extends Adapter {
 
   private async _onresponse(id: string, request: Request, response: ResponsePayload) {
     if (request.type === 'ALL_ROOMS') {
-      request.msgCount += 1
       const { rooms } = <ResponsePayloadMapping<'ALL_ROOMS'>> response
       rooms.forEach((s) => request.payload.rooms.add(s))
       this.updateRequest(request, id)
     } else if (request.type === 'SOCKETS') {
-      request.msgCount += 1
       const { sockets } = <ResponsePayloadMapping<'SOCKETS'>> response
       sockets.forEach((s) => request.payload.sockets.add(s))
       this.updateRequest(request, id)
     } else if (request.type === 'REMOTE_FETCH') {
-      request.msgCount += 1
       const { sockets } = <ResponsePayloadMapping<'REMOTE_FETCH'>> response
       sockets.forEach((s) => request.payload.sockets.push(s))
       this.updateRequest(request, id)
@@ -363,20 +348,21 @@ export default class NatsIoAdapter extends Adapter {
   //-----------------------------------------------
   // Request/response type guard
 
-  private async sendRequest(payload: RequestPayload): Promise<void> {
-    await this.pubsub.publishRaw(this.requestChannel, MsgPackModule.encodeRequestPayload(payload))
+  private sendRequest(payload: RequestPayload): void {
+    this.pubsub.publishRaw(this.requestChannel, MsgPackModule.encodeRequestPayload(payload))
   }
 
   private async sendRequestWithPromise<T extends RequestType>(
     payload: RequestPayload, opts: RequestOptsMapping<T>): Promise<RequestPromiseMapping<T>> {
-    if (!('requestId' in payload)) {
+    if (!('requestId' in payload) || !payload.requestId) {
       return new Promise(() => {})
     }
     const type = payload.type
     const requestId = payload.requestId
     return new Promise(async (res, rej) => {
-      await this.RequestStoreModule.put(requestId, type, res, rej, opts, await this.pubsub.nodes())
-      await this.pubsub.publishRaw(this.requestChannel, MsgPackModule.encodeRequestPayload(payload))
+      await this.RequestStoreModule.put(requestId, type, res, rej, opts)
+      setTimeout(() => this.resolveReqWithTimeout(requestId), this.requestsTimeout)
+      this.pubsub.publishRaw(this.requestChannel, MsgPackModule.encodeRequestPayload(payload))
       const sub = this.pubsub.getBinder(requestId, this.responseChannel)
         ?.subscribe(this.responseChannel + requestId,
           {callback: (err, msg) => this.onresponse(requestId, err, msg)})
@@ -386,9 +372,9 @@ export default class NatsIoAdapter extends Adapter {
     })
   }
 
-  private async sendResponse <T extends RequestType>(
-    requestType: RequestType, payload: ResponsePayloadMapping<T>): Promise<void> {
-    await this.pubsub.publishRaw(this.responseChannel + payload.requestId,
+  private sendResponse <T extends RequestType>(
+    requestType: RequestType, payload: ResponsePayloadMapping<T>): void {
+    this.pubsub.publishRaw(this.responseChannel + payload.requestId,
       MsgPackModule.encodeResponsePayload(requestType, payload))
   }
 
@@ -399,23 +385,29 @@ export default class NatsIoAdapter extends Adapter {
     if (!request.resolve) {
       return
     }
-    if (request.type === 'SOCKETS' && request.msgCount === request.numSub) {
-      this.clearProcess(request, requestId)
-      request.resolve(request.payload.sockets)
-    } else if (request.type === 'ALL_ROOMS' && request.msgCount === request.numSub) {
-      this.clearProcess(request, requestId)
-      request.resolve(request.payload.rooms)
-    } else if (request.type === 'REMOTE_FETCH' && request.msgCount === request.numSub) {
-      this.clearProcess(request, requestId)
-      request.resolve(request.payload.sockets)
-    } else if (['REMOTE_JOIN', 'REMOTE_LEAVE', 'REMOTE_DISCONNECT'].includes(request.type)) {
-      this.clearProcess(request, requestId)
+    if (['REMOTE_JOIN', 'REMOTE_LEAVE', 'REMOTE_DISCONNECT'].includes(request.type)) {
+      this.clearProcess(requestId)
       request.resolve()
     }
   }
 
-  private clearProcess(request: Request, requestId: string) {
-    clearTimeout(request.timeout)
+  private resolveReqWithTimeout(requestId: string) {
+    const request = this.RequestStoreModule.get(requestId)
+    if (!request) {
+      return
+    }
+    this.clearProcess(requestId)
+
+    if (request.type === 'SOCKETS') {
+      request.resolve(request.payload.sockets)
+    } else if (request.type === 'ALL_ROOMS') {
+      request.resolve(request.payload.rooms)
+    } else if (request.type === 'REMOTE_FETCH') {
+      request.resolve(request.payload.sockets)
+    }
+  }
+
+  private clearProcess(requestId: string) {
     this.RequestStoreModule.del(requestId)
     this.pubsub.unsubscribe(this.responseChannel + requestId)
   }

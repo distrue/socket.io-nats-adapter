@@ -29,12 +29,10 @@ export default class MsgPackModule {
   }
 
   public static encodeRequestPayload(request: RequestPayload): Uint8Array {
-    // TODO(v2): add active type checker
     return encode(request)
   }
 
   public static decodeRequestPayload(payload: Uint8Array): RequestPayload {
-    // TODO(v2): add active type checker
     return decode<RequestPayload>(payload)
   }
 
@@ -42,7 +40,6 @@ export default class MsgPackModule {
     requestType: T,
     response: ResponsePayloadMapping<T>,
   ): Uint8Array {
-    // TODO(v0.2): add active type checker
     return encode(response)
   }
 
@@ -51,7 +48,6 @@ export default class MsgPackModule {
     payload: Uint8Array,
   )
     : ResponsePayloadMapping<T> {
-    // TODO(v0.2): add active type checker
     return decode<ResponsePayloadMapping<T>>(payload)
   }
 }

@@ -46,9 +46,19 @@ function remoteFetch(opts: BroadcastOptions): RequestPayload {
   }
 }
 
+function serverSideEmit(uid: string, packet: any[], requestId?: string): RequestPayload {
+  return {
+    uid: uid,
+    type: 'SERVER_SIDE_EMIT',
+    data: packet,
+    requestId: requestId,
+  }
+}
+
 export default {
   addSockets,
   delSockets,
   disconnSockets,
   remoteFetch,
+  serverSideEmit,
 }

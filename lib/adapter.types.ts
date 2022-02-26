@@ -19,9 +19,6 @@ interface AllRoomsOpts {
 interface AllRoomsRequest {
   type: 'ALL_ROOMS'
   resolve: Function
-  numSub: number
-  msgCount: number
-  timeout: NodeJS.Timeout
   payload: AllRoomsOpts
 }
 
@@ -31,9 +28,6 @@ interface SocketsOpts {
 interface SocketsRequest {
   type: 'SOCKETS'
   resolve: Function
-  numSub: number
-  msgCount: number
-  timeout: NodeJS.Timeout
   payload: SocketsOpts
 }
 
@@ -49,16 +43,12 @@ interface RemoteFetchOpts {
 interface RemoteFetchRequest {
   type: 'REMOTE_FETCH'
   resolve: Function
-  numSub: number
-  msgCount: number
-  timeout: NodeJS.Timeout
   payload: RemoteFetchOpts
 }
 
 interface BareRequest {
   type: 'REMOTE_JOIN' | 'REMOTE_LEAVE' | 'REMOTE_DISCONNECT'
   resolve: Function
-  timeout: NodeJS.Timeout
 }
 
 export type Request =
@@ -155,6 +145,13 @@ interface SocketsRequestPayload {
   rooms: Array<Room>
 }
 
+interface ServerSideEmitPayload {
+  uid: string,
+  type: 'SERVER_SIDE_EMIT',
+  data: any,
+  requestId?: string,
+}
+
 export type RequestPayload =
   | AllRoomsRequestPayload
   | InternalAddSocketsRequestPayload
@@ -165,6 +162,7 @@ export type RequestPayload =
   | RemoteLeaveRequestPayload
   | RemoteDisconnectRequestPayload
   | SocketsRequestPayload
+  | ServerSideEmitPayload
 
 ///
 

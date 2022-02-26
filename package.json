@@ -1,6 +1,6 @@
 {
   "name": "socket.io-nats-adapter",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Pub/Sub adapter for socket.io using nats.io as pub/sub message queue",
   "main": "dist/index.js",
   "scripts": {
