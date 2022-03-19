@@ -1,4 +1,4 @@
-import NatsIoClient from './service/natsIoClient'
+import NatsIoClient from './service/NatsIoClient'
 import NatsIoAdapter from './adapter'
 
 exports.createAdapter = createAdapter

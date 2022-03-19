@@ -1,5 +1,5 @@
 import { Msg, NatsError, Subscription } from 'nats'
-import NatsIoClient, { SubscribeBinder } from '../service/natsIoClient'
+import NatsIoClient, { SubscribeBinder } from '../service/NatsIoClient'
 
 const debug = require('debug')('socket.io-adapter:pubsub')
 
