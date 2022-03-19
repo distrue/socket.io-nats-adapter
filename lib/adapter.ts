@@ -14,11 +14,11 @@ import RequestBuilder from './builder/requestBuilder'
 import ResponseBuilder from './builder/responseBuilder'
 
 import MsgPackModule from './module/msgPackModule'
-import RequestStoreModule from './module/RequestStoreModule'
+import RequestStoreModule from './module/requestStoreModule'
 import PubSubModule from './module/pubSubModule'
 
-import NatsIoClient from './service/natsIoClient'
-import UniqueId from './service/uniqueId'
+import NatsIoClient from './service/NatsIoClient'
+import UniqueId from './service/UniqueId'
 
 const debug = require('debug')('socket.io-adapter')
 
