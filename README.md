@@ -1,6 +1,6 @@
 # socket.io-nats
 
-Last release: [v0.2.0](https://www.npmjs.com/package/socket.io-nats-adapter)
+Last release: [v0.2.1](https://www.npmjs.com/package/socket.io-nats-adapter) - March 19, 2022
 
 Pub/Sub adapter for socket.io using nats.io as pub/sub message queue
 
@@ -8,6 +8,13 @@ Pub/Sub adapter for socket.io using nats.io as pub/sub message queue
 - `at-most-once` semantics on adapter methods
 
 Please let us know if you have any comments or features you would like to request.
+
+## Milestone
+
+- `v0.3`
+    - [ ] Authmating test with jest
+    - [ ] Performance benchmark tool
+    - with `docker` environment
 
 ## Setting
 
